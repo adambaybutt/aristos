@@ -1,6 +1,6 @@
-# Empirical Crypto Asset Pricing
+# Real out of sample tests of crypto asset pricing
 
-This repository contains the official code for implementing the empirical crypto asset pricing results in Baybutt (2022).
+This repository contains some basic asset pricing models deployed prospectively for trading crypto assets.
 
 ## Quickstart
 
