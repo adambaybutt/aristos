@@ -1,4 +1,4 @@
-# Real out of sample tests of crypto asset pricing
+# Prospective Crypto Asset Pricing
 
 This repository contains some basic asset pricing models deployed prospectively for trading crypto assets.
 
