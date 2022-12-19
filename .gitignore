@@ -1,6 +1,6 @@
 # Project specific folders
-/1-code/archive/
-/2-data/
+/1-data/
+/2-code/archive/
 /3-output/
 
 # Byte-compiled / optimized / DLL files
