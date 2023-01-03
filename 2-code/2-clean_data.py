@@ -21,7 +21,7 @@ def initialClean(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns = {'close': 'price'})
     df['price']  = df.price.astype('float32')
     df['volume'] = df.volume.astype('float32')
-    df['trades'] = df.volume.astype('float32')
+    df['trades'] = df.trades.astype('float32')
 
     # confirm range of values
     assert(df.shape[0] == np.sum(df.trades >= 0)),('number of trades has negative values.')
@@ -84,6 +84,7 @@ if __name__ == "__main__":
     # set fps
     eth_fp = '../1-data/raw/ETHUSD_1.csv'
     btc_fp = '../1-data/raw/XBTUSD_1.csv'
+    out_fp = '../1-data/clean/panel_btceth_1min.pkl'
 
     # import
     btc_df = pd.read_csv(btc_fp, header=None)
@@ -97,4 +98,4 @@ if __name__ == "__main__":
     df = merge(btc_df, eth_df)
 
     # save
-    df.to_pickle('../1-data/clean/panel_btceth_1min.pkl')
+    df.to_pickle(out_fp)
