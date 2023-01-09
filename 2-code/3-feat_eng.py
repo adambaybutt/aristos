@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
-import datetime
-import matplotlib.pyplot as plt
 from sklearn.metrics import mutual_info_score
 from sklearn.decomposition import PCA
-from sklearn.linear_model import Lasso
-from sklearn.preprocessing import StandardScaler
 
 def createPanelFeatures(panel_df: pd.DataFrame) -> pd.DataFrame:
     ''' Form all features at panel level.
@@ -18,7 +14,7 @@ def createPanelFeatures(panel_df: pd.DataFrame) -> pd.DataFrame:
         panel_df (pd.DataFrame): panel data with features and without raw columns.
     '''
     # simple returns
-    for t in [1, 2, 3, 4, 5, 10, 15, 20, 30, 60, 120, 360, 365, 720, 
+    for t in [1, 2, 3, 4, 5, 10, 15, 20, 30, 60, 120, 360, 365, 720, 725,
               1440, 4320, 8640, 20160, 40320, 86400]:
         panel_df['covar_r_tm'+str(t)] = panel_df.groupby('asset')['price'].pct_change(periods=t)
 
@@ -221,8 +217,8 @@ def createFeaturesLHSAndCollapseToTimeBars(panel_df: pd.DataFrame) -> pd.DataFra
     # form rsi features (needs to be time bar data for the code i have)
     df = createRSIFeatures(df)
 
-    # resample to target frequency of every six hours
-    df = df[df.date.dt.hour.isin([0,6,12,18]) & (df.date.dt.minute==0)].reset_index(drop=True)
+    # resample to target frequency of every twelve hours
+    df = df[df.date.dt.hour.isin([0,12]) & (df.date.dt.minute==0)].reset_index(drop=True)
 
     return df
 
@@ -261,7 +257,7 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
     # ensure there are the correct number of rows
     min_date = np.min(df.date.values)
     max_date = np.max(df.date.values)
-    number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24*4 # ns to sec to quarter days plus one bar
+    number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24*2 # ns to sec to half days plus one bar
     assert(df.shape[0] == number_of_bars)
 
     # drop columns missing any data
@@ -497,7 +493,7 @@ def selectFeaturesFromResults(results_df: pd.DataFrame) -> set:
 if __name__ == "__main__":
     # set args
     in_fp  = '../1-data/clean/panel_btceth_1min.pkl'
-    out_fp = '../1-data/clean/bars_btceth_6hour.pkl'
+    out_fp = '../1-data/clean/bars_btceth_12hour.pkl'
 
     # read in data
     panel_df = pd.read_pickle(in_fp)
@@ -515,5 +511,5 @@ if __name__ == "__main__":
     included_feats = selectFeaturesFromResults(results_df)
     
     # subset to selected features and save
-    df = df[['date', 'y', 'y_btc_eth_diff_r_tp5_tp730']+list(included_feats)]
+    df = df[['date', 'y_btc_eth_diff_r_tp5_tp730']+list(included_feats)]
     df.to_pickle(out_fp)
