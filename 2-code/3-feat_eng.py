@@ -143,11 +143,9 @@ def collapseToTimeBars(panel_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def createLHSVariables(df: pd.DataFrame) -> pd.DataFrame:
-    ''' Create LHS target variables in binary and absolute return difference versions.
-        Decided to go with six hour frequency as about 90% of the windows have return difference
-        such that if forecasted accurately profit would be above fees.
-        Window is from every six hours (starting midnight) plus five minutes (to give time to 
-        pull data and predict) to the subsequent six hours plus 10 minutes (to repeat the process 
+    ''' Create LHS target variables of absolute return difference between btc and eth.
+        Window is from every twelve hours (starting midnight) plus five minutes (to give time to 
+        pull data and predict) to the subsequent twelve hours plus 10 minutes (to repeat the process 
         and give time to place/update trades).
     
     Args:
@@ -157,18 +155,14 @@ def createLHSVariables(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): time bar level data with LHS and RHS features.
     '''
     # form temporary columns of btc and eth returns over target window
-    df['temp_btc_r_tp5_tp370'] = df.covar_btc_r_tm365.shift(-370)
-    df['temp_eth_r_tp5_tp370'] = df.covar_eth_r_tm365.shift(-370)
-
-    # form binary LHS outcome y where 1 if BTC outperforms and 0 otherwise
-    df.loc[df.temp_btc_r_tp5_tp370 >= df.temp_eth_r_tp5_tp370, 'y'] = 1
-    df.loc[df.temp_btc_r_tp5_tp370 < df.temp_eth_r_tp5_tp370, 'y'] = 0
+    df['temp_btc_r_tp5_tp730'] = df.covar_btc_r_tm725.shift(-730)
+    df['temp_eth_r_tp5_tp730'] = df.covar_eth_r_tm725.shift(-730)
 
     # form real valued LHS outcome for return difference
-    df['y_btc_eth_diff_r_tp5_tp370'] = df.temp_btc_r_tp5_tp370 - df.temp_eth_r_tp5_tp370
+    df['y_btc_eth_diff_r_tp5_tp730'] = df.temp_btc_r_tp5_tp730 - df.temp_eth_r_tp5_tp730
 
     # drop temporary columns
-    df = df.drop(['temp_btc_r_tp5_tp370', 'temp_eth_r_tp5_tp370'], axis=1)
+    df = df.drop(['temp_btc_r_tp5_tp730', 'temp_eth_r_tp5_tp730'], axis=1)
 
     return df
 
@@ -257,10 +251,9 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
     # order columns
     cols = list(df.columns.values)
     cols.remove('date')
-    cols.remove('y')
-    cols.remove('y_btc_eth_diff_r_tp5_tp370')
+    cols.remove('y_btc_eth_diff_r_tp5_tp730')
     sorted_cols = sorted(cols)
-    df = df[['date', 'y', 'y_btc_eth_diff_r_tp5_tp370']+sorted_cols]
+    df = df[['date', 'y_btc_eth_diff_r_tp5_tp730']+sorted_cols]
 
     # ensure rows are sorted
     df = df.sort_values(by='date', ignore_index=True)
@@ -435,10 +428,6 @@ def calcCorrelationStatistics(df: pd.DataFrame, lhs_col: str) -> pd.DataFrame:
     stats_df = df.copy()
     stats_df['year'] = stats_df.date.dt.year
     stats_df = stats_df[stats_df.year < 2022]
-    if lhs_col == 'y_btc_eth_diff_r_tp5_tp370':
-        stats_df = stats_df.drop('y', axis=1)
-    if lhs_col == 'y':
-        stats_df = stats_df.drop('y_btc_eth_diff_r_tp5_tp370', axis=1)
 
     # initialize a results data frame
     results_df = pd.DataFrame()
@@ -522,15 +511,9 @@ if __name__ == "__main__":
     # calculate correlation statistics
     # TODO for the future: for feature selection, bootstrap like 90% of the data without replacement, 
     #      calc the corr stat, and average across these so results are not driven by outliers
-    results_df = calcCorrelationStatistics(df, lhs_col='y')
-
-    # select features to include based on correlation measures with both LHS variables
-    results_binary_df = calcCorrelationStatistics(df, lhs_col='y')
-    included_feats_binary = selectFeaturesFromResults(results_binary_df)
-    results_real_df = calcCorrelationStatistics(df, lhs_col='y_btc_eth_diff_r_tp5_tp370')
-    included_feats_real = selectFeaturesFromResults(results_real_df)
-    included_feats = included_feats_binary.union(included_feats_real)
+    results_df = calcCorrelationStatistics(df, lhs_col='y_btc_eth_diff_r_tp5_tp730')
+    included_feats = selectFeaturesFromResults(results_df)
     
     # subset to selected features and save
-    df = df[['date', 'y', 'y_btc_eth_diff_r_tp5_tp370']+list(included_feats)]
+    df = df[['date', 'y', 'y_btc_eth_diff_r_tp5_tp730']+list(included_feats)]
     df.to_pickle(out_fp)
