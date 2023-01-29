@@ -3,144 +3,82 @@ import numpy as np
 from sklearn.metrics import mutual_info_score
 from sklearn.decomposition import PCA
 
-def createPanelFeatures(panel_df: pd.DataFrame) -> pd.DataFrame:
+def createPanelFeatures(df: pd.DataFrame) -> pd.DataFrame:
     ''' Form all features at panel level.
     
     Args:
-        panel_df (pd.DataFrame): raw minute-level panel of BTC and ETH: usd per token prices, 
-                                 token volume, and trade count.
+        df (pd.DataFrame): raw minute-level data of: date, ethbtc price, trade volume and counts. 
     
     Returns:
-        panel_df (pd.DataFrame): panel data with features and without raw columns.
+        df (pd.DataFrame): minute level data with features and without raw columns.
     '''
     # simple returns
-    for t in [1, 2, 3, 4, 5, 10, 15, 20, 30, 60, 120, 360, 365, 720, 725,
+    for t in [1, 2, 3, 4, 5, 10, 15, 20, 30, 60, 120, 125, 360, 365, 720,
               1440, 4320, 8640, 20160, 40320, 86400]:
-        panel_df['covar_r_tm'+str(t)] = panel_df.groupby('asset')['price'].pct_change(periods=t)
+        df['covar_r_tm'+str(t)] = df['price'].pct_change(periods=t)
 
     # moments of 1 minute returns
     for t in [5, 10, 20, 30, 60, 360, 720, 4320, 8640, 20160]:
-        panel_df['covar_r_1min_ma_tm'+str(t)]   = panel_df.groupby('asset')['covar_r_tm1'].transform(
-                                                        lambda x: x.rolling(t).mean())
-        panel_df['covar_r_1min_ema_tm'+str(t)]  = panel_df.groupby('asset')['covar_r_tm1'].transform(
-                                                        lambda x: x.ewm(span=t, adjust=False).mean())
-        panel_df['covar_r_1min_vol_tm'+str(t)]  = panel_df.groupby('asset')['covar_r_tm1'].transform(
-                                                        lambda x: x.rolling(t).std())
-        panel_df['covar_r_1min_skew_tm'+str(t)] = panel_df.groupby('asset')['covar_r_tm1'].transform(
-                                                        lambda x: x.rolling(t).skew())
-        panel_df['covar_r_1min_kurt_tm'+str(t)] = panel_df.groupby('asset')['covar_r_tm1'].transform(
-                                                        lambda x: x.rolling(t).kurt())
+        df['covar_r_1min_ma_tm'+str(t)]   = df['covar_r_tm1'].transform(lambda x: x.rolling(t).mean())
+        df['covar_r_1min_ema_tm'+str(t)]  = df['covar_r_tm1'].transform(lambda x: x.ewm(span=t, adjust=False).mean())
+        df['covar_r_1min_vol_tm'+str(t)]  = df['covar_r_tm1'].transform(lambda x: x.rolling(t).std())
+        df['covar_r_1min_skew_tm'+str(t)] = df['covar_r_tm1'].transform(lambda x: x.rolling(t).skew())
+        df['covar_r_1min_kurt_tm'+str(t)] = df['covar_r_tm1'].transform(lambda x: x.rolling(t).kurt())
 
     # moments of 5 minute returns
     for t in [30, 60, 720, 4320, 8640, 20160]:
-        panel_df['covar_r_5min_ma_tm'+str(t)]   = panel_df.groupby('asset')['covar_r_tm5'].transform(
-                                                                    lambda x: x.rolling(t).mean())
-        panel_df['covar_r_5min_min_tm'+str(t)]  = panel_df.groupby('asset')['covar_r_tm5'].transform(
-                                                                    lambda x: x.rolling(t).min())
-        panel_df['covar_r_5min_max_tm'+str(t)]  = panel_df.groupby('asset')['covar_r_tm5'].transform(
-                                                                    lambda x: x.rolling(t).max())
-        panel_df['covar_r_5min_vol_tm'+str(t)]  = panel_df.groupby('asset')['covar_r_tm5'].transform(
-                                                                    lambda x: x.rolling(t).std())
-        panel_df['covar_r_5min_skew_tm'+str(t)] = panel_df.groupby('asset')['covar_r_tm5'].transform(
-                                                                    lambda x: x.rolling(t).skew())
-        panel_df['covar_r_5min_kurt_tm'+str(t)] = panel_df.groupby('asset')['covar_r_tm5'].transform(
-                                                                    lambda x: x.rolling(t).kurt())
+        df['covar_r_5min_ma_tm'+str(t)]   = df['covar_r_tm5'].transform(lambda x: x.rolling(t).mean())
+        df['covar_r_5min_min_tm'+str(t)]  = df['covar_r_tm5'].transform(lambda x: x.rolling(t).min())
+        df['covar_r_5min_max_tm'+str(t)]  = df['covar_r_tm5'].transform(lambda x: x.rolling(t).max())
+        df['covar_r_5min_vol_tm'+str(t)]  = df['covar_r_tm5'].transform(lambda x: x.rolling(t).std())
+        df['covar_r_5min_skew_tm'+str(t)] = df['covar_r_tm5'].transform(lambda x: x.rolling(t).skew())
+        df['covar_r_5min_kurt_tm'+str(t)] = df['covar_r_tm5'].transform(lambda x: x.rolling(t).kurt())
+
+    # moments of 60 minute returns
+    for t in [720, 4320, 8640, 20160, 40320, 86400]:
+        df['covar_r_60min_ma_tm'+str(t)]   = df['covar_r_tm60'].transform(lambda x: x.rolling(t).mean())
+        df['covar_r_60min_min_tm'+str(t)]  = df['covar_r_tm60'].transform(lambda x: x.rolling(t).min())
+        df['covar_r_60min_max_tm'+str(t)]  = df['covar_r_tm60'].transform(lambda x: x.rolling(t).max())
+        df['covar_r_60min_vol_tm'+str(t)]  = df['covar_r_tm60'].transform(lambda x: x.rolling(t).std())
+        df['covar_r_60min_skew_tm'+str(t)] = df['covar_r_tm60'].transform(lambda x: x.rolling(t).skew())
+        df['covar_r_60min_kurt_tm'+str(t)] = df['covar_r_tm60'].transform(lambda x: x.rolling(t).kurt())
+
+    # moments of 120 minute returns
+    for t in [720, 4320, 8640, 20160, 40320, 86400]:
+        df['covar_r_120min_ma_tm'+str(t)]   = df['covar_r_tm120'].transform(lambda x: x.rolling(t).mean())
+        df['covar_r_120min_min_tm'+str(t)]  = df['covar_r_tm120'].transform(lambda x: x.rolling(t).min())
+        df['covar_r_120min_max_tm'+str(t)]  = df['covar_r_tm120'].transform(lambda x: x.rolling(t).max())
+        df['covar_r_120min_vol_tm'+str(t)]  = df['covar_r_tm120'].transform(lambda x: x.rolling(t).std())
+        df['covar_r_120min_skew_tm'+str(t)] = df['covar_r_tm120'].transform(lambda x: x.rolling(t).skew())
+        df['covar_r_120min_kurt_tm'+str(t)] = df['covar_r_tm120'].transform(lambda x: x.rolling(t).kurt())
 
     # form price variables
-    panel_df = panel_df.rename(columns = {'price': 'covar_p_t'})
-    panel_df['covar_p_log_t'] = np.log(panel_df.covar_p_t)
+    df = df.rename(columns = {'price': 'covar_p_t'})
+    df['covar_p_log_t'] = np.log(df.covar_p_t)
 
     # current volume
-    panel_df = panel_df.rename(columns = {'volume': 'covar_volume_t',
-                                          'trades': 'covar_trades_t'})
+    df = df.rename(columns = {'volume': 'covar_volume_t', 'trades': 'covar_trades_t'})
 
     # form functions of volume
     for col in ['covar_volume_t', 'covar_trades_t']:
         for t in [5, 10, 20, 30, 60, 360, 720, 4320, 8640, 20160]:
-            panel_df['covar_'+col+'_ma_tm'+str(t)]  = panel_df.groupby('asset')[col].transform(
-                                                                    lambda x: x.rolling(t).mean())
-            panel_df['covar_'+col+'_sum_tm'+str(t)] = panel_df.groupby('asset')[col].transform(
-                                                                    lambda x: x.rolling(t).sum())                                                                        
-            panel_df['covar_'+col+'_min_tm'+str(t)] = panel_df.groupby('asset')[col].transform(
-                                                                    lambda x: x.rolling(t).min()) 
-            panel_df['covar_'+col+'_max_tm'+str(t)] = panel_df.groupby('asset')[col].transform(
-                                                                    lambda x: x.rolling(t).max()) 
-            panel_df['covar_'+col+'_vol_tm'+str(t)] = panel_df.groupby('asset')[col].transform(
-                                                                    lambda x: x.rolling(t).std()) 
+            df['covar_'+col+'_ma_tm'+str(t)]  = df[col].transform(lambda x: x.rolling(t).mean())
+            df['covar_'+col+'_sum_tm'+str(t)] = df[col].transform(lambda x: x.rolling(t).sum())                                                                        
+            df['covar_'+col+'_min_tm'+str(t)] = df[col].transform(lambda x: x.rolling(t).min()) 
+            df['covar_'+col+'_max_tm'+str(t)] = df[col].transform(lambda x: x.rolling(t).max()) 
+            df['covar_'+col+'_vol_tm'+str(t)] = df[col].transform(lambda x: x.rolling(t).std()) 
     
     # form returns from cum max and min prices
-    panel_df['covar_r_cummax_t'] = ((panel_df.covar_p_t - panel_df.covar_p_t.cummax()) 
-                                    / panel_df.covar_p_t.cummax())
-    panel_df['covar_r_cummin_t'] = ((panel_df.covar_p_t - panel_df.covar_p_t.cummin()) 
-                                    / panel_df.covar_p_t.cummin())
+    df['covar_r_cummax_t'] = ((df.covar_p_t - df.covar_p_t.cummax()) 
+                                    / df.covar_p_t.cummax())
+    df['covar_r_cummin_t'] = ((df.covar_p_t - df.covar_p_t.cummin()) 
+                                    / df.covar_p_t.cummin())
 
-    return panel_df
-
-def renameColumnsWithAssetName(temp_df: pd.DataFrame, asset: str) -> pd.DataFrame:
-    ''' Helper function to rename columns with asset name at specific point in feature name.
-
-    Args:
-        asset (str): asset abbreviation to include in column names.
-    
-    Returns:
-        temp_df (pd.DataFrame): same data frame with new column names.
-    '''
-    # obtain list of features
-    cols = list(temp_df.columns.values)
-    cols.remove('date')
-
-    # initialize dictionary to use to rename
-    col_rename_dict = {}
-
-    # build dictionary to rename
-    for col in cols:
-        assert(col[:6] == 'covar_')
-        col_rename_dict[col] = 'covar_'+asset+'_'+col[6:]
-
-    # execute rename
-    temp_df = temp_df.rename(columns=col_rename_dict)
-
-    return temp_df
-
-def collapseToTimeBars(panel_df: pd.DataFrame) -> pd.DataFrame:
-    ''' Collapse panel to time bars, ensuring no missing dates.
-    
-    Args: 
-        panel_df (pd.DataFrame): panel data with features and without raw columns.
-
-    Returns:
-        df (pd.DataFrame): time bar level data with RHS features.
-    '''
-
-    # form seperate dataframes
-    btc_df = panel_df[panel_df.asset=='btc'].copy()
-    eth_df = panel_df[panel_df.asset=='eth'].copy()
-
-    # drop unnecessary column
-    btc_df = btc_df.drop('asset', axis=1)
-    eth_df = eth_df.drop('asset', axis=1)
-
-    # rename columns with asset name
-    btc_df = renameColumnsWithAssetName(btc_df, 'btc')
-    eth_df = renameColumnsWithAssetName(eth_df, 'eth')
-
-    # merge
-    df = btc_df.merge(eth_df, 
-                      on=['date'],
-                      how='inner',
-                      validate='one_to_one')
-
-    # ensure no missing time bars
-    min_date = np.min(df.date.values)
-    max_date = np.max(df.date.values)
-    number_of_bars = 1+int(max_date - min_date)/1e9/60 # ns to seconds to minutes plus one minute
-    assert(df.shape[0] == number_of_bars)
-    
     return df
 
 def createLHSVariables(df: pd.DataFrame) -> pd.DataFrame:
     ''' Create LHS target variables of absolute return difference between btc and eth.
-        Window is from every twelve hours (starting midnight) plus five minutes (to give time to 
+        Window is from every two hours (starting midnight) plus five minutes (to give time to 
         pull data and predict) to the subsequent twelve hours plus 10 minutes (to repeat the process 
         and give time to place/update trades).
     
@@ -150,16 +88,7 @@ def createLHSVariables(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         df (pd.DataFrame): time bar level data with LHS and RHS features.
     '''
-    # form temporary columns of btc and eth returns over target window
-    df['temp_btc_r_tp5_tp730'] = df.covar_btc_r_tm725.shift(-730)
-    df['temp_eth_r_tp5_tp730'] = df.covar_eth_r_tm725.shift(-730)
-
-    # form real valued LHS outcome for return difference
-    df['y_btc_eth_diff_r_tp5_tp730'] = df.temp_btc_r_tp5_tp730 - df.temp_eth_r_tp5_tp730
-
-    # drop temporary columns
-    df = df.drop(['temp_btc_r_tp5_tp730', 'temp_eth_r_tp5_tp730'], axis=1)
-
+    df['y_ethbtc_r_tp5_tp130'] = df.covar_r_tm125.shift(-130)
     return df
 
 def createRSIFeatures(df: pd.DataFrame) -> pd.DataFrame:
@@ -172,53 +101,53 @@ def createRSIFeatures(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): same time bar level data frame with RSI features added.    
 
     FUTURE TODO:
-        -convert code to work at panel level instead of time bar level
         -pass in freq to work at, noting units
         -pass in windows to create, noting units
         -make generic function in my relevant class
     '''
-
-    for asset in ['btc', 'eth']:
-        for window in [360, 720, 4320, 8640, 20160]:
-            one_hr_p_delta_col = 'covar_'+asset+'_p_delta_tm12'
-            df[one_hr_p_delta_col] = df['covar_'+asset+'_p_t'].diff(periods=12)
-            df['temp_'+asset+'neg_p_delta_1hr'] = df[one_hr_p_delta_col].clip(upper=0)
-            df['temp_'+asset+'pos_p_delta_1hr'] = -1*df[one_hr_p_delta_col].clip(lower=0)
-            df['temp_'+asset+'_avg_neg_p_delta_1hr_tm'+str(window)] = df['temp_'+asset+'neg_p_delta_1hr'].transform(lambda x: x.rolling(window, min_periods=1).mean())
-            df['temp_'+asset+'_avg_pos_p_delta_1hr_tm'+str(window)] = df['temp_'+asset+'pos_p_delta_1hr'].transform(lambda x: x.rolling(window, min_periods=1).mean())
-            df['covar_'+asset+'_rsi_tm'+str(window)] = (100 - 100/(1 + 
-                                                                df['temp_'+asset+'_avg_pos_p_delta_1hr_tm'+str(window)]/
-                                                                df['temp_'+asset+'_avg_neg_p_delta_1hr_tm'+str(window)]))
-            df = df.drop([one_hr_p_delta_col,
-                          'temp_'+asset+'neg_p_delta_1hr', 
-                          'temp_'+asset+'pos_p_delta_1hr',
-                          'temp_'+asset+'_avg_neg_p_delta_1hr_tm'+str(window),
-                          'temp_'+asset+'_avg_pos_p_delta_1hr_tm'+str(window)], axis=1)
+    for window in [360, 720, 4320, 8640, 20160]:
+        two_hr_p_delta_col = 'covar_p_delta_tm120'
+        df[two_hr_p_delta_col] = df['covar_p_t'].diff(periods=120)
+        df['temp_neg_p_delta_2hr'] = df[two_hr_p_delta_col].clip(upper=0)
+        df['temp_pos_p_delta_2hr'] = -1*df[two_hr_p_delta_col].clip(lower=0)
+        df['temp_avg_neg_p_delta_2hr_tm'+str(window)] = df['temp_neg_p_delta_2hr'].transform(lambda x: x.rolling(window, min_periods=1).mean())
+        df['temp_avg_pos_p_delta_2hr_tm'+str(window)] = df['temp_pos_p_delta_2hr'].transform(lambda x: x.rolling(window, min_periods=1).mean())
+        df['covar_rsi_tm'+str(window)] = (100 - 100/(1 + df['temp_avg_pos_p_delta_2hr_tm'+str(window)]/df['temp_avg_neg_p_delta_2hr_tm'+str(window)]))
+        df = df.drop([two_hr_p_delta_col,
+                        'temp_neg_p_delta_2hr', 
+                        'temp_pos_p_delta_2hr',
+                        'temp_avg_neg_p_delta_2hr_tm'+str(window),
+                        'temp_avg_pos_p_delta_2hr_tm'+str(window)], axis=1)
     
     return df
 
-def createFeaturesLHSAndCollapseToTimeBars(panel_df: pd.DataFrame) -> pd.DataFrame:
+def createFeaturesAndLHS(df: pd.DataFrame) -> pd.DataFrame:
     ''' Transform raw panel to time bars with clean LHS and RHS features.
     
     Args:
-        panel_df (pd.DataFrame): raw minute-level panel of BTC and ETH:
+        df (pd.DataFrame): raw minute-level panel of BTC and ETH:
                                  usd per token prices, token volume, and trade count.
     
     Returns:
         df (pd.DataFrame): time bars of LHS and RHS features.
     '''
     # form features
-    panel_df = createPanelFeatures(panel_df)
+    df = createPanelFeatures(df)
 
-    # form LHS and collapse
-    df = collapseToTimeBars(panel_df)
+    # ensure no missing time bars
+    min_date = np.min(df.date.values)
+    max_date = np.max(df.date.values)
+    number_of_bars = 1+int(max_date - min_date)/1e9/60 # ns to seconds to minutes plus one minute
+    assert(df.shape[0] == number_of_bars)
+
+    # form LHS
     df = createLHSVariables(df)
     
-    # form rsi features (needs to be time bar data for the code i have)
+    # form rsi features
     df = createRSIFeatures(df)
 
-    # resample to target frequency of every twelve hours
-    df = df[df.date.dt.hour.isin([0,12]) & (df.date.dt.minute==0)].reset_index(drop=True)
+    # resample to target frequency of every two hours
+    df = df[df.date.dt.hour.isin([0,2,4,6,8,10,12,14,16,18,20,22]) & (df.date.dt.minute==0)].reset_index(drop=True)
 
     return df
 
@@ -232,7 +161,7 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): clean time bar level data with sorted columns and rows.    
     '''
     # interpolate missing values in skew, kurt, and rsi columns with trailing four day mean
-    periods = 16 # four days
+    periods = 48 # four days
     cols = list(df.columns.values)
     interpol_cols = [col for col in cols if ('rsi' in col) | ('kurt' in col) | ('skew' in col)]
     for col in interpol_cols:
@@ -240,16 +169,15 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
         df[col] = df[col].fillna(df['rolling_average'])
         df = df.drop('rolling_average', axis=1)
 
-    # drop rows pre 2016 and post June 2022
-    df = df[df.date.dt.year >= 2016]
-    df = df[~((df.date.dt.year == 2022) & (df.date.dt.month == 6))]
+    # drop rows pre 2017 and post 2022
+    df = df[(df.date.dt.year >= 2017) & (df.date.dt.year <= 2022)]
 
     # order columns
     cols = list(df.columns.values)
     cols.remove('date')
-    cols.remove('y_btc_eth_diff_r_tp5_tp730')
+    cols.remove('y_ethbtc_r_tp5_tp130')
     sorted_cols = sorted(cols)
-    df = df[['date', 'y_btc_eth_diff_r_tp5_tp730']+sorted_cols]
+    df = df[['date', 'y_ethbtc_r_tp5_tp130']+sorted_cols]
 
     # ensure rows are sorted
     df = df.sort_values(by='date', ignore_index=True)
@@ -257,13 +185,16 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
     # ensure there are the correct number of rows
     min_date = np.min(df.date.values)
     max_date = np.max(df.date.values)
-    number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24*2 # ns to sec to half days plus one bar
+    number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24*12 # ns to sec to half days plus one bar
     assert(df.shape[0] == number_of_bars)
+
+    # drop the first and last row
+    df = df[:-1].reset_index(drop=True)
 
     # drop columns missing any data
     num_cols_pre = df.shape[1]
     df = df.dropna(axis=1)
-    print('dropped '+str(int(df.shape[1]-num_cols_pre))+' columns that were still missing data.')
+    print('dropped '+str(int(num_cols_pre-df.shape[1]))+' columns that were still missing data.')
 
     # ensure no missing data
     assert(0==df.isnull().sum().sum()),('there is missing data to be fixed in the time bar data.')
@@ -401,8 +332,8 @@ def calcIndependenceTable(temp_df: pd.DataFrame, lhs_col: str, feat_col: str) ->
     # set up dataframe to output the data and format it 
     num_stats = int(len(years)+1)
     indep_df = pd.DataFrame(data={'feature': np.repeat(feat_col, num_stats),
-                                 'window':  years+['all'],
-                                 'indep':   np.zeros(num_stats)})
+                                  'window':  years+['all'],
+                                  'indep':   np.zeros(num_stats)})
     for i in range(len(years)):
         year = years[i]
         indep_df.loc[indep_df.window == year, 'indep']  = yearly_indep[i]
@@ -434,6 +365,7 @@ def calcCorrelationStatistics(df: pd.DataFrame, lhs_col: str) -> pd.DataFrame:
 
     # calc corr stats for each feat col
     for feat_col in feat_cols: 
+        print(feat_col) # TODO REMOVE
         corr_pearson_df  = calcCorrTable(stats_df, lhs_col, feat_col, method='pearson')
         corr_spearman_df = calcCorrTable(stats_df, lhs_col, feat_col, method='spearman')
         temp_df          = corr_pearson_df.merge(corr_spearman_df,
@@ -492,14 +424,14 @@ def selectFeaturesFromResults(results_df: pd.DataFrame) -> set:
 
 if __name__ == "__main__":
     # set args
-    in_fp  = '../1-data/clean/panel_btceth_1min.pkl'
-    out_fp = '../1-data/clean/bars_btceth_12hour.pkl'
+    in_fp  = '../1-data/clean/panel_ethbtc_1min.pkl'
+    out_fp = '../1-data/clean/bars_ethbtc_2hour.pkl'
 
     # read in data
-    panel_df = pd.read_pickle(in_fp)
+    df = pd.read_pickle(in_fp)
 
     # engineer features
-    df = createFeaturesLHSAndCollapseToTimeBars(panel_df)
+    df = createFeaturesAndLHS(df)
     
     # ensure time bar data is clean
     df = finalClean(df)
@@ -507,9 +439,9 @@ if __name__ == "__main__":
     # calculate correlation statistics
     # TODO for the future: for feature selection, bootstrap like 90% of the data without replacement, 
     #      calc the corr stat, and average across these so results are not driven by outliers
-    results_df = calcCorrelationStatistics(df, lhs_col='y_btc_eth_diff_r_tp5_tp730')
+    results_df = calcCorrelationStatistics(df, lhs_col='y_ethbtc_r_tp5_tp130')
     included_feats = selectFeaturesFromResults(results_df)
     
     # subset to selected features and save
-    df = df[['date', 'y_btc_eth_diff_r_tp5_tp730']+list(included_feats)]
+    df = df[['date', 'y_ethbtc_r_tp5_tp130']+list(included_feats)]
     df.to_pickle(out_fp)
