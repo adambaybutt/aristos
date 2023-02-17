@@ -3,27 +3,19 @@ import numpy as np
 from sklearn.metrics import mutual_info_score
 from sklearn.decomposition import PCA
 
-def createPanelFeatures(df: pd.DataFrame) -> pd.DataFrame:
+def createPanelFeatures(df: pd.DataFrame, freq: int) -> pd.DataFrame:
     ''' Form all features at panel level.
     
     Args:
         df (pd.DataFrame): raw minute-level data of: date, ethbtc price, trade volume and counts. 
+        freq (int): specific frequency to work at--in minutes; passed in to ensure we create correct RHS.
     
     Returns:
         df (pd.DataFrame): minute level data with features and without raw columns.
     '''
     # simple returns
-    for t in [1, 2, 3, 4, 5, 10, 15, 20, 30, 60, 120, 125, 360, 365, 720,
-              1440, 4320, 8640, 20160, 40320, 86400]:
+    for t in [1, 5, 15, 30, 60, 120, 360, 1440, 4320, 8640, 20160, 40320, 86400, freq]:
         df['covar_r_tm'+str(t)] = df['price'].pct_change(periods=t)
-
-    # moments of 1 minute returns
-    for t in [5, 10, 20, 30, 60, 360, 720, 4320, 8640, 20160]:
-        df['covar_r_1min_ma_tm'+str(t)]   = df['covar_r_tm1'].transform(lambda x: x.rolling(t).mean())
-        df['covar_r_1min_ema_tm'+str(t)]  = df['covar_r_tm1'].transform(lambda x: x.ewm(span=t, adjust=False).mean())
-        df['covar_r_1min_vol_tm'+str(t)]  = df['covar_r_tm1'].transform(lambda x: x.rolling(t).std())
-        df['covar_r_1min_skew_tm'+str(t)] = df['covar_r_tm1'].transform(lambda x: x.rolling(t).skew())
-        df['covar_r_1min_kurt_tm'+str(t)] = df['covar_r_tm1'].transform(lambda x: x.rolling(t).kurt())
 
     # moments of 5 minute returns
     for t in [30, 60, 720, 4320, 8640, 20160]:
@@ -34,15 +26,6 @@ def createPanelFeatures(df: pd.DataFrame) -> pd.DataFrame:
         df['covar_r_5min_skew_tm'+str(t)] = df['covar_r_tm5'].transform(lambda x: x.rolling(t).skew())
         df['covar_r_5min_kurt_tm'+str(t)] = df['covar_r_tm5'].transform(lambda x: x.rolling(t).kurt())
 
-    # moments of 60 minute returns
-    for t in [720, 4320, 8640, 20160, 40320, 86400]:
-        df['covar_r_60min_ma_tm'+str(t)]   = df['covar_r_tm60'].transform(lambda x: x.rolling(t).mean())
-        df['covar_r_60min_min_tm'+str(t)]  = df['covar_r_tm60'].transform(lambda x: x.rolling(t).min())
-        df['covar_r_60min_max_tm'+str(t)]  = df['covar_r_tm60'].transform(lambda x: x.rolling(t).max())
-        df['covar_r_60min_vol_tm'+str(t)]  = df['covar_r_tm60'].transform(lambda x: x.rolling(t).std())
-        df['covar_r_60min_skew_tm'+str(t)] = df['covar_r_tm60'].transform(lambda x: x.rolling(t).skew())
-        df['covar_r_60min_kurt_tm'+str(t)] = df['covar_r_tm60'].transform(lambda x: x.rolling(t).kurt())
-
     # moments of 120 minute returns
     for t in [720, 4320, 8640, 20160, 40320, 86400]:
         df['covar_r_120min_ma_tm'+str(t)]   = df['covar_r_tm120'].transform(lambda x: x.rolling(t).mean())
@@ -51,6 +34,15 @@ def createPanelFeatures(df: pd.DataFrame) -> pd.DataFrame:
         df['covar_r_120min_vol_tm'+str(t)]  = df['covar_r_tm120'].transform(lambda x: x.rolling(t).std())
         df['covar_r_120min_skew_tm'+str(t)] = df['covar_r_tm120'].transform(lambda x: x.rolling(t).skew())
         df['covar_r_120min_kurt_tm'+str(t)] = df['covar_r_tm120'].transform(lambda x: x.rolling(t).kurt())
+
+    # moments of 1 day returns
+    for t in [4320, 8640, 20160, 40320, 86400]:
+        df['covar_r_1440min_ma_tm'+str(t)]   = df['covar_r_tm1440'].transform(lambda x: x.rolling(t).mean())
+        df['covar_r_1440min_min_tm'+str(t)]  = df['covar_r_tm1440'].transform(lambda x: x.rolling(t).min())
+        df['covar_r_1440min_max_tm'+str(t)]  = df['covar_r_tm1440'].transform(lambda x: x.rolling(t).max())
+        df['covar_r_1440min_vol_tm'+str(t)]  = df['covar_r_tm1440'].transform(lambda x: x.rolling(t).std())
+        df['covar_r_1440min_skew_tm'+str(t)] = df['covar_r_tm1440'].transform(lambda x: x.rolling(t).skew())
+        df['covar_r_1440min_kurt_tm'+str(t)] = df['covar_r_tm1440'].transform(lambda x: x.rolling(t).kurt())
 
     # form price variables
     df = df.rename(columns = {'price': 'covar_p_t'})
@@ -61,7 +53,7 @@ def createPanelFeatures(df: pd.DataFrame) -> pd.DataFrame:
 
     # form functions of volume
     for col in ['covar_volume_t', 'covar_trades_t']:
-        for t in [5, 10, 20, 30, 60, 360, 720, 4320, 8640, 20160]:
+        for t in [5, 30, 60, 360, 720, 4320, 8640, 20160]:
             df['covar_'+col+'_ma_tm'+str(t)]  = df[col].transform(lambda x: x.rolling(t).mean())
             df['covar_'+col+'_sum_tm'+str(t)] = df[col].transform(lambda x: x.rolling(t).sum())                                                                        
             df['covar_'+col+'_min_tm'+str(t)] = df[col].transform(lambda x: x.rolling(t).min()) 
@@ -76,7 +68,7 @@ def createPanelFeatures(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def createLHSVariables(df: pd.DataFrame) -> pd.DataFrame:
+def createLHSVariables(df: pd.DataFrame, lhs_col: str, freq: int) -> pd.DataFrame:
     ''' Create LHS target variables of absolute return difference between btc and eth.
         Window is from every two hours (starting midnight) plus five minutes (to give time to 
         pull data and predict) to the subsequent twelve hours plus 10 minutes (to repeat the process 
@@ -84,11 +76,13 @@ def createLHSVariables(df: pd.DataFrame) -> pd.DataFrame:
     
     Args:
         df (pd.DataFrame): time bar level data with only RHS features.
+        lhs_col (str): specific LHS name to create.
+        freq (int): specific frequency that we are working at, in minutes.
     
     Returns:
         df (pd.DataFrame): time bar level data with LHS and RHS features.
     '''
-    df['y_ethbtc_r_tp5_tp130'] = df.covar_r_tm125.shift(-130)
+    df[lhs_col] = df['covar_r_tm'+str(freq)].shift(-(freq+5))
     return df
 
 def createRSIFeatures(df: pd.DataFrame) -> pd.DataFrame:
@@ -121,18 +115,20 @@ def createRSIFeatures(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def createFeaturesAndLHS(df: pd.DataFrame) -> pd.DataFrame:
+def createFeaturesAndLHS(df: pd.DataFrame, freq: int, lhs_col: str) -> pd.DataFrame:
     ''' Transform raw panel to time bars with clean LHS and RHS features.
     
     Args:
         df (pd.DataFrame): raw minute-level panel of BTC and ETH:
-                                 usd per token prices, token volume, and trade count.
+                           usd per token prices, token volume, and trade count.
+        freq (int): specific frequency to work at, in minutes.
+        lhs_col (str): specific LHS name to create.
     
     Returns:
         df (pd.DataFrame): time bars of LHS and RHS features.
     '''
     # form features
-    df = createPanelFeatures(df)
+    df = createPanelFeatures(df, freq)
 
     # ensure no missing time bars
     min_date = np.min(df.date.values)
@@ -141,27 +137,36 @@ def createFeaturesAndLHS(df: pd.DataFrame) -> pd.DataFrame:
     assert(df.shape[0] == number_of_bars)
 
     # form LHS
-    df = createLHSVariables(df)
+    df = createLHSVariables(df, lhs_col, freq)
     
     # form rsi features
     df = createRSIFeatures(df)
 
-    # resample to target frequency of every two hours
-    df = df[df.date.dt.hour.isin([0,2,4,6,8,10,12,14,16,18,20,22]) & (df.date.dt.minute==0)].reset_index(drop=True)
+    # resample to target frequency
+    if freq == 120:
+        df = df[df.date.dt.hour.isin([0,2,4,6,8,10,12,14,16,18,20,22]) & (df.date.dt.minute==0)].reset_index(drop=True)
+    if freq == 2880:
+        df = df[(df.date.dt.hour == 14) & (df.date.dt.minute==0)].reset_index(drop=True)
+        df = df[(df.index%2)==0]
 
     return df
 
-def finalClean(df: pd.DataFrame) -> pd.DataFrame:
+def finalClean(df: pd.DataFrame, lhs_col: str, freq: int) -> pd.DataFrame:
     ''' Final checks and clean of the time bar data.
 
     Args:
         df (pd.DataFrame): time bar level data with LHS and RHS features.
+        lhs_col (str): specific name for LHS column.
+        freq (int): specific frequency that we are working at, in minutes.
 
     Returns:
         df (pd.DataFrame): clean time bar level data with sorted columns and rows.    
     '''
-    # interpolate missing values in skew, kurt, and rsi columns with trailing four day mean
-    periods = 48 # four days
+    # interpolate missing values in skew, kurt, and rsi columns with trailing mean
+    if freq == 120:
+        periods = 48 # four days
+    if freq == 2880:
+        periods = 10 # 20 days
     cols = list(df.columns.values)
     interpol_cols = [col for col in cols if ('rsi' in col) | ('kurt' in col) | ('skew' in col)]
     for col in interpol_cols:
@@ -175,9 +180,9 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
     # order columns
     cols = list(df.columns.values)
     cols.remove('date')
-    cols.remove('y_ethbtc_r_tp5_tp130')
+    cols.remove(lhs_col)
     sorted_cols = sorted(cols)
-    df = df[['date', 'y_ethbtc_r_tp5_tp130']+sorted_cols]
+    df = df[['date', lhs_col]+sorted_cols]
 
     # ensure rows are sorted
     df = df.sort_values(by='date', ignore_index=True)
@@ -185,7 +190,10 @@ def finalClean(df: pd.DataFrame) -> pd.DataFrame:
     # ensure there are the correct number of rows
     min_date = np.min(df.date.values)
     max_date = np.max(df.date.values)
-    number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24*12 # ns to sec to half days plus one bar
+    if freq == 120:
+        number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24*12 
+    elif freq == 2880:
+        number_of_bars = 1+int(max_date - min_date)/1e9/60/60/24/2
     assert(df.shape[0] == number_of_bars)
 
     # drop the first and last row
@@ -408,40 +416,48 @@ def selectFeaturesFromResults(results_df: pd.DataFrame) -> set:
     included_feats = set([])
 
     # determine features that are useful across the entire data set
-    limit1 = 16
+    limit1 = 4
     all_df = results_df[results_df.window == 'all']
     for stat in ['corr_pearson', 'corr_spearman', 'mi', 'indep']:
         included_feats = included_feats.union(set(np.unique(all_df.sort_values(by=stat, ascending=False).feature.values[:limit1])))
 
     # determine features that are useful in recent years
-    limit2 = 9
+    limit2 = 3
     for year in [2018, 2019, 2020, 2021]:
         year_df = results_df[results_df.window == year]
         for stat in ['corr_pearson', 'corr_spearman', 'mi']: # note ignoring indep
             included_feats = included_feats.union(set(np.unique(year_df.sort_values(by=stat, ascending=False).feature.values[:limit2])))
 
+    # manually fix
+    if 'covar_p_t' in included_feats:
+        included_feats.remove('covar_p_t')
+    if 'covar_p_log_t' in included_feats:
+        included_feats.remove('covar_p_log_t')
+        
     return included_feats
 
 if __name__ == "__main__":
     # set args
-    in_fp  = '../1-data/clean/panel_ethbtc_1min.pkl'
-    out_fp = '../1-data/clean/bars_ethbtc_2hour.pkl'
+    in_fp   = '../1-data/clean/panel_ethbtc_1min.pkl'
+    out_fp  = '../1-data/clean/bars_ethbtc_2d.pkl'
+    freq    = 2880
+    lhs_col = 'y_ethbtc_r_tp5_tp' + str(freq+5)
 
     # read in data
     df = pd.read_pickle(in_fp)
 
     # engineer features
-    df = createFeaturesAndLHS(df)
+    df = createFeaturesAndLHS(df, freq, lhs_col)
     
     # ensure time bar data is clean
-    df = finalClean(df)
+    df = finalClean(df, lhs_col, freq)
 
     # calculate correlation statistics
     # TODO for the future: for feature selection, bootstrap like 90% of the data without replacement, 
     #      calc the corr stat, and average across these so results are not driven by outliers
-    results_df = calcCorrelationStatistics(df, lhs_col='y_ethbtc_r_tp5_tp130')
+    results_df = calcCorrelationStatistics(df, lhs_col=lhs_col)
     included_feats = selectFeaturesFromResults(results_df)
     
     # subset to selected features and save
-    df = df[['date', 'y_ethbtc_r_tp5_tp130']+list(included_feats)]
+    df = df[['date', lhs_col]+list(included_feats)]
     df.to_pickle(out_fp)

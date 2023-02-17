@@ -82,7 +82,7 @@ def collapseToMinuteLevel(df: pd.DataFrame) -> pd.DataFrame:
 if __name__ == "__main__":
     # set fps
     ethbtc_fp = '../1-data/raw/ETHXBT_1.csv'
-    out_fp = '../1-data/clean/panel_ethbtc_1min.pkl'
+    out_fp = '../1-data/clean/panel_ethbtc_2d.pkl'
 
     # import
     ethbtc_df = pd.read_csv(ethbtc_fp, header=None)
