@@ -1,14 +1,3 @@
 # Prospective Crypto Asset Pricing
 
-This repository contains some basic asset pricing models deployed prospectively for trading crypto assets.
-
-## Quickstart
-
-
-## Structure
-
-This repo is organized as follows...
-
-## Contributing
-
-Code is released as is, but we welcome pull requests for any issues.
+This repository contains some basic asset pricing models. The Transformer-based model is yet to be comitted. The out-of-sample and portfolio management code is yet to be committed.
